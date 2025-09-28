@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Space Combat</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div id="gameWrapper">
+            <canvas id="gameCanvas"></canvas>
+            <div id="menuScreen" class="screen active">
+                <h1>SPACE COMBAT</h1>
+                <div class="menu-items">
+                    <button class="menu-btn" data-action="start">게임 시작</button>
+                    <button class="menu-btn" data-action="howto">진행 방법</button>
+                    <button class="menu-btn" data-action="credits">Credits</button>
+                </div>
+            </div>
+            <div id="howtoScreen" class="screen">
+                <h2>게임 진행 방법</h2>
+                <div class="instructions">
+                    <p>← → ↑ ↓ : 이동</p>
+                    <p>SPACE : 공격</p>
+                    <p>C : 폭탄 (화면의 모든 적 제거)</p>
+                    <p>적을 처치하면 파워업 아이템이 드롭됩니다.</p>
+                    <p>보스를 처치하면 다음 스테이지로 진행됩니다.</p>
+                </div>
+                <button class="menu-btn" data-action="back">돌아가기</button>
+            </div>
+            <div id="creditsScreen" class="screen">
+                <h2>Credits</h2>
+                <div class="credits-content">
+                    <p>개발: Your Name</p>
+                    <p>그래픽 디자인: Your Name</p>
+                    <p>기획: Your Name</p>
+                    <p>© 2025 All Rights Reserved</p>
+                </div>
+                <button class="menu-btn" data-action="back">돌아가기</button>
+            </div>
+            <div id="gameOverScreen" class="screen">
+                <h2>GAME OVER</h2>
+                <div class="game-over-stats">
+                    <p>최종 점수: <span id="finalScore">0</span></p>
+                    <p>도달 스테이지: <span id="finalStage">1</span></p>
+                </div>
+                <div class="menu-items">
+                    <button class="menu-btn" data-action="restart">다시 시작</button>
+                    <button class="menu-btn" data-action="quit">메인 메뉴</button>
+                </div>
+            </div>
+        </div>
+        <div id="gameInfo">
+            <div class="score">SCORE<span id="score">0</span></div>
+            <div class="health">HEALTH<span id="health">100</span></div>
+            <div class="stage">STAGE<span id="stage">1</span></div>
+            <div class="bombs">BOMBS<span id="bombs">3</span></div>
+            <div class="power">POWER<span id="power">1</span></div>
+        </div>
+    </div>
+    <!-- 클래스 정의 순서대로 스크립트 로드 -->
+    <script src="js/PlayerStats.js"></script>
+    <script src="js/Player.js"></script>
+    <script src="js/Enemy.js"></script>
+    <script src="js/Boss.js"></script>
+    <script src="js/Bullet.js"></script>
+    <script src="js/DeathEffect.js"></script>
+    <script src="js/Item.js"></script>
+    <script src="js/Game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
+            <div id="powerupScreen" class="screen">
+                <h2>파워업 선택</h2>
+                <div class="powerup-options">
+                    <div class="powerup-option" data-powerup="satellite">
+                        <h3>1. 위성 추가</h3>
+                        <p>플레이어 주위를 도는 위성이 추가 공격을 발사</p>
+                    </div>
+                    <div class="powerup-option" data-powerup="spread">
+                        <h3>2. 산탄 추가</h3>
+                        <p>3발마다 2배의 탄환 발사</p>
+                    </div>
+                    <div class="powerup-option" data-powerup="barrier">
+                        <h3>3. 베리어 추가</h3>
+                        <p>10발의 적 탄환을 막는 방패 생성</p>
+                    </div>
+                </div>
+            </div>
