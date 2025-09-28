@@ -16,8 +16,32 @@ window.Game = class Game {
         this.stageTime = 0;
         this.isGameRunning = false;
         this.isPowerupScreenActive = false;
+        this.isPaused = false;
         
         this.setupMenuListeners();
+        this.setupPauseListeners();
+    }
+
+    setupPauseListeners() {
+        document.getElementById('pauseButton').addEventListener('click', () => this.togglePause());
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isGameRunning) {
+                this.togglePause();
+            }
+        });
+    }
+
+    togglePause() {
+        if (!this.isGameRunning) return;
+        
+        this.isPaused = !this.isPaused;
+        const pauseScreen = document.getElementById('pauseScreen');
+        
+        if (this.isPaused) {
+            pauseScreen.classList.add('active');
+        } else {
+            pauseScreen.classList.remove('active');
+        }
     }
 
     setupMenuListeners() {
@@ -35,9 +59,10 @@ window.Game = class Game {
         const creditsScreen = document.getElementById('creditsScreen');
         const gameOverScreen = document.getElementById('gameOverScreen');
         const powerupScreen = document.getElementById('powerupScreen');
+        const pauseScreen = document.getElementById('pauseScreen');
         const gameInfo = document.getElementById('gameInfo');
 
-        [menuScreen, howtoScreen, creditsScreen, gameOverScreen, powerupScreen].forEach(screen => {
+        [menuScreen, howtoScreen, creditsScreen, gameOverScreen, powerupScreen, pauseScreen].forEach(screen => {
             screen.classList.remove('active');
         });
 
@@ -46,6 +71,9 @@ window.Game = class Game {
             case 'restart':
                 gameInfo.style.display = 'block';
                 this.startGame();
+                break;
+            case 'resume':
+                this.togglePause();
                 break;
             case 'howto':
                 howtoScreen.classList.add('active');
@@ -57,6 +85,8 @@ window.Game = class Game {
                 menuScreen.classList.add('active');
                 break;
             case 'quit':
+                this.isGameRunning = false;
+                this.isPaused = false;
                 gameInfo.style.display = 'none';
                 menuScreen.classList.add('active');
                 break;
@@ -66,6 +96,7 @@ window.Game = class Game {
     startGame() {
         this.isGameRunning = true;
         this.isPowerupScreenActive = false;
+        this.isPaused = false;
         this.score = 0;
         this.stage = 1;
         this.player = new Player(this);
@@ -80,7 +111,7 @@ window.Game = class Game {
     }
 
     gameLoop() {
-        if (!this.isGameRunning && !this.isPowerupScreenActive) return;
+        if (!this.isGameRunning) return;
         
         this.update();
         this.draw();
@@ -88,9 +119,7 @@ window.Game = class Game {
     }
 
     update() {
-        if (!this.isGameRunning) {
-            // 파워업 화면에서는 이펙트만 업데이트
-            this.updateEntities(this.effects);
+        if (this.isPaused) {
             return;
         }
 
@@ -163,11 +192,8 @@ window.Game = class Game {
     }
 
     showPowerupScreen() {
-        // 게임 일시정지
         this.isPowerupScreenActive = true;
-        this.isGameRunning = false;
-        
-        // 파워업 화면 표시
+        this.isPaused = true;
         document.getElementById('powerupScreen').classList.add('active');
 
         const handlePowerupSelect = (e) => {
@@ -177,7 +203,16 @@ window.Game = class Game {
             const powerupType = option.getAttribute('data-powerup');
             this.player.addPowerup(powerupType);
             
-            this.resumeGame(handlePowerupSelect, handleKeySelect);
+            document.getElementById('powerupScreen').classList.remove('active');
+            this.isPowerupScreenActive = false;
+            this.isPaused = false;
+            
+            document.querySelectorAll('.powerup-option').forEach(opt => {
+                opt.removeEventListener('click', handlePowerupSelect);
+            });
+            window.removeEventListener('keydown', handleKeySelect);
+
+            this.stageTime = 0;
         };
 
         const handleKeySelect = (e) => {
@@ -186,31 +221,23 @@ window.Game = class Game {
                 const index = parseInt(e.key) - 1;
                 this.player.addPowerup(powerups[index]);
                 
-                this.resumeGame(handlePowerupSelect, handleKeySelect);
+                document.getElementById('powerupScreen').classList.remove('active');
+                this.isPowerupScreenActive = false;
+                this.isPaused = false;
+                
+                document.querySelectorAll('.powerup-option').forEach(opt => {
+                    opt.removeEventListener('click', handlePowerupSelect);
+                });
+                window.removeEventListener('keydown', handleKeySelect);
+
+                this.stageTime = 0;
             }
         };
 
-        // 이벤트 리스너 등록
         document.querySelectorAll('.powerup-option').forEach(option => {
             option.addEventListener('click', handlePowerupSelect);
         });
         window.addEventListener('keydown', handleKeySelect);
-    }
-
-    resumeGame(powerupHandler, keyHandler) {
-        // 파워업 화면 숨기기
-        document.getElementById('powerupScreen').classList.remove('active');
-        
-        // 이벤트 리스너 제거
-        document.querySelectorAll('.powerup-option').forEach(opt => {
-            opt.removeEventListener('click', powerupHandler);
-        });
-        window.removeEventListener('keydown', keyHandler);
-        
-        // 게임 상태 복원 및 재개
-        this.isPowerupScreenActive = false;
-        this.isGameRunning = true;
-        this.stageTime = 0;
     }
 
     checkCollisions() {

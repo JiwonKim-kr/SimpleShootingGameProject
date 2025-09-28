@@ -175,3 +175,21 @@ h2 {
     color: #fff;
     font-size: 16px;
 }
+
+.pause-btn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 24px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: 2px solid white;
+    border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    z-index: 100;
+}
+
+.pause-btn:hover {
+    background: rgba(0, 0, 0, 0.7);
+}

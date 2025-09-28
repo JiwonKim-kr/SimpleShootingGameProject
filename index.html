@@ -38,6 +38,13 @@
                 </div>
                 <button class="menu-btn" data-action="back">돌아가기</button>
             </div>
+            <div id="pauseScreen" class="screen">
+                <h2>일시정지</h2>
+                <div class="menu-items">
+                    <button class="menu-btn" data-action="resume">게임 재개</button>
+                    <button class="menu-btn" data-action="quit">메인 메뉴</button>
+                </div>
+            </div>
             <div id="gameOverScreen" class="screen">
                 <h2>GAME OVER</h2>
                 <div class="game-over-stats">
@@ -51,6 +58,7 @@
             </div>
         </div>
         <div id="gameInfo">
+            <button id="pauseButton" class="pause-btn">⏸</button>
             <div class="score">SCORE<span id="score">0</span></div>
             <div class="health">HEALTH<span id="health">100</span></div>
             <div class="stage">STAGE<span id="stage">1</span></div>
