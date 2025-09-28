@@ -88,7 +88,8 @@ window.Game = class Game {
     }
 
     update() {
-        if (!this.isGameRunning && !this.isPowerupScreenActive) {
+        if (!this.isGameRunning) {
+            // 파워업 화면에서는 이펙트만 업데이트
             this.updateEntities(this.effects);
             return;
         }
@@ -162,8 +163,11 @@ window.Game = class Game {
     }
 
     showPowerupScreen() {
+        // 게임 일시정지
         this.isPowerupScreenActive = true;
         this.isGameRunning = false;
+        
+        // 파워업 화면 표시
         document.getElementById('powerupScreen').classList.add('active');
 
         const handlePowerupSelect = (e) => {
@@ -173,16 +177,7 @@ window.Game = class Game {
             const powerupType = option.getAttribute('data-powerup');
             this.player.addPowerup(powerupType);
             
-            document.getElementById('powerupScreen').classList.remove('active');
-            this.isPowerupScreenActive = false;
-            this.isGameRunning = true;
-            
-            document.querySelectorAll('.powerup-option').forEach(opt => {
-                opt.removeEventListener('click', handlePowerupSelect);
-            });
-            window.removeEventListener('keydown', handleKeySelect);
-
-            this.stageTime = 0;
+            this.resumeGame(handlePowerupSelect, handleKeySelect);
         };
 
         const handleKeySelect = (e) => {
@@ -191,23 +186,31 @@ window.Game = class Game {
                 const index = parseInt(e.key) - 1;
                 this.player.addPowerup(powerups[index]);
                 
-                document.getElementById('powerupScreen').classList.remove('active');
-                this.isPowerupScreenActive = false;
-                this.isGameRunning = true;
-                
-                document.querySelectorAll('.powerup-option').forEach(opt => {
-                    opt.removeEventListener('click', handlePowerupSelect);
-                });
-                window.removeEventListener('keydown', handleKeySelect);
-
-                this.stageTime = 0;
+                this.resumeGame(handlePowerupSelect, handleKeySelect);
             }
         };
 
+        // 이벤트 리스너 등록
         document.querySelectorAll('.powerup-option').forEach(option => {
             option.addEventListener('click', handlePowerupSelect);
         });
         window.addEventListener('keydown', handleKeySelect);
+    }
+
+    resumeGame(powerupHandler, keyHandler) {
+        // 파워업 화면 숨기기
+        document.getElementById('powerupScreen').classList.remove('active');
+        
+        // 이벤트 리스너 제거
+        document.querySelectorAll('.powerup-option').forEach(opt => {
+            opt.removeEventListener('click', powerupHandler);
+        });
+        window.removeEventListener('keydown', keyHandler);
+        
+        // 게임 상태 복원 및 재개
+        this.isPowerupScreenActive = false;
+        this.isGameRunning = true;
+        this.stageTime = 0;
     }
 
     checkCollisions() {
