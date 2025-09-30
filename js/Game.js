@@ -18,6 +18,10 @@ window.Game = class Game {
         this.isPowerupScreenActive = false;
         this.isPaused = false;
         
+        // 이벤트 리스너 참조 저장
+        this.powerupClickHandler = null;
+        this.powerupKeyHandler = null;
+        
         this.setupMenuListeners();
         this.setupPauseListeners();
     }
@@ -94,6 +98,7 @@ window.Game = class Game {
     }
 
     startGame() {
+        this.cleanupPowerupListeners(); // 이전 게임의 리스너 정리
         this.isGameRunning = true;
         this.isPowerupScreenActive = false;
         this.isPaused = false;
@@ -196,48 +201,57 @@ window.Game = class Game {
         this.isPaused = true;
         document.getElementById('powerupScreen').classList.add('active');
 
+        // 이전 이벤트 리스너 정리
+        this.cleanupPowerupListeners();
+
         const handlePowerupSelect = (e) => {
             const option = e.target.closest('.powerup-option');
             if (!option) return;
 
             const powerupType = option.getAttribute('data-powerup');
-            this.player.addPowerup(powerupType);
-            
-            document.getElementById('powerupScreen').classList.remove('active');
-            this.isPowerupScreenActive = false;
-            this.isPaused = false;
-            
-            document.querySelectorAll('.powerup-option').forEach(opt => {
-                opt.removeEventListener('click', handlePowerupSelect);
-            });
-            window.removeEventListener('keydown', handleKeySelect);
-
-            this.stageTime = 0;
+            this.selectPowerup(powerupType);
         };
 
         const handleKeySelect = (e) => {
             if (e.key >= '1' && e.key <= '3') {
                 const powerups = ['satellite', 'spread', 'barrier'];
                 const index = parseInt(e.key) - 1;
-                this.player.addPowerup(powerups[index]);
-                
-                document.getElementById('powerupScreen').classList.remove('active');
-                this.isPowerupScreenActive = false;
-                this.isPaused = false;
-                
-                document.querySelectorAll('.powerup-option').forEach(opt => {
-                    opt.removeEventListener('click', handlePowerupSelect);
-                });
-                window.removeEventListener('keydown', handleKeySelect);
-
-                this.stageTime = 0;
+                this.selectPowerup(powerups[index]);
             }
         };
+
+        // 이벤트 리스너 저장 (나중에 정리하기 위해)
+        this.powerupClickHandler = handlePowerupSelect;
+        this.powerupKeyHandler = handleKeySelect;
 
         document.querySelectorAll('.powerup-option').forEach(option => {
             option.addEventListener('click', handlePowerupSelect);
         });
         window.addEventListener('keydown', handleKeySelect);
+    }
+
+    selectPowerup(powerupType) {
+        this.player.addPowerup(powerupType);
+        
+        document.getElementById('powerupScreen').classList.remove('active');
+        this.isPowerupScreenActive = false;
+        this.isPaused = false;
+        this.stageTime = 0;
+        
+        this.cleanupPowerupListeners();
+    }
+
+    cleanupPowerupListeners() {
+        if (this.powerupClickHandler) {
+            document.querySelectorAll('.powerup-option').forEach(opt => {
+                opt.removeEventListener('click', this.powerupClickHandler);
+            });
+        }
+        if (this.powerupKeyHandler) {
+            window.removeEventListener('keydown', this.powerupKeyHandler);
+        }
+        this.powerupClickHandler = null;
+        this.powerupKeyHandler = null;
     }
 
     checkCollisions() {
