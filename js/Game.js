@@ -18,6 +18,12 @@ window.Game = class Game {
         this.isPowerupScreenActive = false;
         this.isPaused = false;
         
+        // 델타 타임 시스템
+        this.lastTime = 0;
+        this.deltaTime = 0;
+        this.targetFPS = 60;
+        this.frameTime = 1000 / this.targetFPS;
+        
         // 이벤트 리스너 참조 저장
         this.powerupClickHandler = null;
         this.powerupKeyHandler = null;
@@ -115,15 +121,22 @@ window.Game = class Game {
         this.gameLoop();
     }
 
-    gameLoop() {
+    gameLoop(currentTime = 0) {
         if (!this.isGameRunning) return;
         
-        this.update();
+        // 델타 타임 계산
+        this.deltaTime = currentTime - this.lastTime;
+        this.lastTime = currentTime;
+        
+        // 프레임 레이트 정규화 (60fps 기준)
+        const normalizedDelta = this.deltaTime / this.frameTime;
+        
+        this.update(normalizedDelta);
         this.draw();
-        requestAnimationFrame(() => this.gameLoop());
+        requestAnimationFrame((time) => this.gameLoop(time));
     }
 
-    update() {
+    update(deltaMultiplier = 1) {
         if (this.isPaused) {
             return;
         }
@@ -133,20 +146,20 @@ window.Game = class Game {
             return;
         }
 
-        this.stageTime++;
-        if (this.stageTime % 3600 === 0 && !this.boss) {
+        this.stageTime += deltaMultiplier;
+        if (this.stageTime >= 3600 && !this.boss) {
             this.spawnBoss();
         }
-        if (this.stageTime % 60 === 0) {
+        if (this.stageTime % (60 * deltaMultiplier) < deltaMultiplier) {
             this.spawnEnemy();
         }
 
-        this.player?.update();
-        this.updateEntities(this.enemies);
-        this.updateEntities(this.bullets);
-        this.updateEntities(this.items);
-        this.updateEntities(this.effects);
-        if (this.boss) this.boss.update();
+        this.player?.update(deltaMultiplier);
+        this.updateEntities(this.enemies, deltaMultiplier);
+        this.updateEntities(this.bullets, deltaMultiplier);
+        this.updateEntities(this.items, deltaMultiplier);
+        this.updateEntities(this.effects, deltaMultiplier);
+        if (this.boss) this.boss.update(deltaMultiplier);
         
         this.checkCollisions();
     }
@@ -341,9 +354,9 @@ window.Game = class Game {
         }
     }
 
-    updateEntities(entities) {
+    updateEntities(entities, deltaMultiplier = 1) {
         for (let i = entities.length - 1; i >= 0; i--) {
-            entities[i].update();
+            entities[i].update(deltaMultiplier);
             if (entities[i].shouldRemove) {
                 entities.splice(i, 1);
             }

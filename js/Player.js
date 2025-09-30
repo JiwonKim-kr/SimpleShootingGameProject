@@ -133,11 +133,11 @@ window.Player = class Player {
         }
     }
 
-    update() {
-        const diagonalSpeed = this.stats.moveSpeed * 0.707;
+    update(deltaMultiplier = 1) {
+        const diagonalSpeed = this.stats.moveSpeed * 0.707 * deltaMultiplier;
         const isDiagonal = (this.keys['ArrowLeft'] || this.keys['ArrowRight']) && 
                           (this.keys['ArrowUp'] || this.keys['ArrowDown']);
-        const currentSpeed = isDiagonal ? diagonalSpeed : this.stats.moveSpeed;
+        const currentSpeed = isDiagonal ? diagonalSpeed : this.stats.moveSpeed * deltaMultiplier;
 
         if (this.keys['ArrowLeft']) {
             this.x = Math.max(0, this.x - currentSpeed);
