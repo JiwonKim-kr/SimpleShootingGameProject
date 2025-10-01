@@ -90,7 +90,8 @@ window.Player = class Player {
                     true,
                     this.stats.bulletDamage * 0.5,
                     this.stats.bulletSpeed,
-                    bulletScale * 0.8
+                    bulletScale * 0.8,
+                    true // 위성 탄환 표시
                 );
                 bullet.speedY = -this.stats.bulletSpeed;
                 this.game.bullets.push(bullet);
