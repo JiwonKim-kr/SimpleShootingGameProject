@@ -17,6 +17,7 @@ window.Player = class Player {
         this.hasSpread = false;
         this.hasMissile = false;
         this.missileCounter = 0;
+        this.missileInterval = 10; // 미사일 발사 간격 (기본 10회)
         this.barrier = null;
         this.barrierHits = 0;
         this.maxBarrierHits = 10;
@@ -97,10 +98,10 @@ window.Player = class Player {
             }
         });
         
-        // 미사일 발사 (10회마다)
+        // 미사일 발사 (동적 간격)
         if (this.hasMissile) {
             this.missileCounter++;
-            if (this.missileCounter >= 10) {
+            if (this.missileCounter >= this.missileInterval) {
                 this.missileCounter = 0;
                 
                 // 양쪽에서 미사일 2발 발사
@@ -271,8 +272,14 @@ window.Player = class Player {
                 });
                 break;
             case 'missile':
-                this.hasMissile = true;
-                this.missileCounter = 0;
+                if (!this.hasMissile) {
+                    this.hasMissile = true;
+                    this.missileCounter = 0;
+                    this.missileInterval = 10;
+                } else {
+                    // 중복 획득 시 발사 간격 감소 (최소 5까지)
+                    this.missileInterval = Math.max(5, this.missileInterval - 1);
+                }
                 break;
             case 'barrier':
                 this.maxBarrierHits += 10;
