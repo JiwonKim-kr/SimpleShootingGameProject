@@ -337,12 +337,13 @@ window.Game = class Game {
             const bullet = this.bullets[i];
             if (bullet.isPlayerBullet) continue;
             
+            // 미사일과 일반 탄환 모두 처리
             if (this.isColliding(bullet, this.player)) {
                 if (this.player.barrierHits < this.player.maxBarrierHits) {
                     this.player.barrierHits++;
                     bullet.shouldRemove = true;
                 } else {
-                    this.player.stats.takeDamage(bullet.damage);
+                    this.player.stats.takeDamage(bullet.damage || 10);
                     this.bullets.splice(i, 1);
                 }
             }

@@ -7,6 +7,7 @@ const validateDependencies = () => {
         'Enemy',
         'Boss',
         'Bullet',
+        'Missile',
         'DeathEffect',
         'Item',
         'Game'
