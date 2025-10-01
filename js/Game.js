@@ -18,6 +18,10 @@ window.Game = class Game {
         this.isPowerupScreenActive = false;
         this.isPaused = false;
         
+        // 디버그 모드
+        this.debugMode = false;
+        this.debugClickCount = 0;
+        
         // 배경 시스템
         this.background = new Background(this.canvas, this.stage);
         
@@ -64,6 +68,21 @@ window.Game = class Game {
                 this.handleMenuAction(action);
             });
         });
+        
+        // 디버그 모드 활성화 (크레딧 화면의 Credits 제목 10회 클릭)
+        const creditsTitle = document.querySelector('#creditsScreen h2');
+        if (creditsTitle) {
+            creditsTitle.addEventListener('click', () => {
+                this.debugClickCount++;
+                if (this.debugClickCount >= 10) {
+                    this.debugMode = true;
+                    this.debugClickCount = 0;
+                    creditsTitle.style.color = '#ff0000';
+                    creditsTitle.textContent = 'Credits (DEBUG MODE)';
+                    console.log('Debug mode activated!');
+                }
+            });
+        }
     }
 
     handleMenuAction(action) {
@@ -121,6 +140,13 @@ window.Game = class Game {
         this.boss = null;
         this.stageTime = 0;
         
+        // 디버그 모드 설정
+        if (this.debugMode) {
+            this.player.stats.powerLevel = 5; // 최대 파워업
+            this.player.stats.invincible = true; // 무적 상태
+            console.log('Debug mode: Max power, Invincible, Fast boss spawn');
+        }
+        
         // 배경 초기화
         this.background.setStage(this.stage);
         
@@ -156,7 +182,8 @@ window.Game = class Game {
         this.background.update(deltaMultiplier);
 
         this.stageTime += deltaMultiplier;
-        if (this.stageTime >= 3600 && !this.boss) {
+        const bossSpawnTime = this.debugMode ? 1800 : 3600; // 디버그 모드에서 절반 시간
+        if (this.stageTime >= bossSpawnTime && !this.boss) {
             this.spawnBoss();
         }
         // 보스가 없을 때만 일반 적 생성

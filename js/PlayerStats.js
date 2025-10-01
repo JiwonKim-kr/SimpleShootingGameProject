@@ -12,6 +12,7 @@ window.PlayerStats = class PlayerStats {
         this.bulletSpeed = 10;
         this.isInvincible = false;
         this.invincibleTime = 3000;
+        this.invincible = false; // 디버그 모드용 무적 상태
     }
 
     increasePower() {
@@ -37,7 +38,7 @@ window.PlayerStats = class PlayerStats {
     }
 
     takeDamage(amount) {
-        if (!this.isInvincible) {
+        if (!this.isInvincible && !this.invincible) {
             this.health = Math.max(0, this.health - amount);
         }
         return this.health > 0;
