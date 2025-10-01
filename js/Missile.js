@@ -19,11 +19,17 @@ window.Missile = class Missile {
         this.maxSpeed = 4;
         this.acceleration = 0.15; // 가속도 (관성 효과)
         this.turnRate = 0.05; // 회전 속도 제한 (더 느리게)
+        
+        // 추적 시간 제한
+        this.trackingTime = 0;
+        this.maxTrackingTime = 12; // 0.2초 (60fps 기준으로 12프레임)
     }
 
     update() {
-        // 플레이어 위치 추적
-        if (this.game.player) {
+        this.trackingTime++;
+        
+        // 0.2초 동안만 플레이어 추적
+        if (this.trackingTime <= this.maxTrackingTime && this.game.player) {
             const dx = this.game.player.x - this.x;
             const dy = this.game.player.y - this.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
@@ -48,6 +54,7 @@ window.Missile = class Missile {
                 this.angle = Math.atan2(this.velocityY, this.velocityX);
             }
         }
+        // 추적 시간 종료 후에는 직진
         
         // 관성이 적용된 이동
         this.x += this.velocityX;
