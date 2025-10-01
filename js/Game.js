@@ -211,6 +211,7 @@ window.Game = class Game {
                 this.score += 1000;
                 this.stage++;
                 this.boss = null;
+                this.stageTime = 0; // 스테이지 시간 리셋으로 중복 보스 생성 방지
                 
                 // 배경 스테이지 업데이트
                 this.background.setStage(this.stage);
