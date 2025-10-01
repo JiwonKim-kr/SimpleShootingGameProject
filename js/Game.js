@@ -18,6 +18,28 @@ window.Game = class Game {
         this.isPowerupScreenActive = false;
         this.isPaused = false;
         
+        // 플레이어 재생성 시스템
+        this.playerRespawnTimer = 0;
+        this.isPlayerDestroyed = false;
+        this.bouncingItems = [];
+        
+        // 디버그 모드
+        this.debugMode = false;
+        this.debugClickCount = 0;
+        
+        // 배경 시스템
+        this.background = new Background(this.canvas, this.stage);
+        
+        // 델타 타임 시스템
+        this.lastTime = 0;
+        this.deltaTime = 0;
+        this.targetFPS = 60;
+        this.frameTime = 1000 / this.targetFPS;
+        
+        // 이벤트 리스너 참조 저장
+        this.powerupClickHandler = null;
+        this.powerupKeyHandler = null;
+        
         this.setupMenuListeners();
         this.setupPauseListeners();
     }
@@ -51,6 +73,21 @@ window.Game = class Game {
                 this.handleMenuAction(action);
             });
         });
+        
+        // 디버그 모드 활성화 (크레딧 화면의 Credits 제목 10회 클릭)
+        const creditsTitle = document.querySelector('#creditsScreen h2');
+        if (creditsTitle) {
+            creditsTitle.addEventListener('click', () => {
+                this.debugClickCount++;
+                if (this.debugClickCount >= 10) {
+                    this.debugMode = true;
+                    this.debugClickCount = 0;
+                    creditsTitle.style.color = '#ff0000';
+                    creditsTitle.textContent = 'Credits (DEBUG MODE)';
+                    console.log('Debug mode activated!');
+                }
+            });
+        }
     }
 
     handleMenuAction(action) {
@@ -94,6 +131,7 @@ window.Game = class Game {
     }
 
     startGame() {
+        this.cleanupPowerupListeners(); // 이전 게임의 리스너 정리
         this.isGameRunning = true;
         this.isPowerupScreenActive = false;
         this.isPaused = false;
@@ -107,41 +145,100 @@ window.Game = class Game {
         this.boss = null;
         this.stageTime = 0;
         
+        // 디버그 모드 설정
+        if (this.debugMode) {
+            this.player.stats.powerLevel = 5; // 최대 파워업
+            this.player.stats.invincible = true; // 무적 상태
+            console.log('Debug mode: Max power, Invincible, Fast boss spawn');
+        }
+        
+        // 배경 초기화
+        this.background.setStage(this.stage);
+        
         this.gameLoop();
     }
 
-    gameLoop() {
+    gameLoop(currentTime = 0) {
         if (!this.isGameRunning) return;
         
-        this.update();
+        // 델타 타임 계산
+        this.deltaTime = currentTime - this.lastTime;
+        this.lastTime = currentTime;
+        
+        // 프레임 레이트 정규화 (60fps 기준)
+        const normalizedDelta = this.deltaTime / this.frameTime;
+        
+        this.update(normalizedDelta);
         this.draw();
-        requestAnimationFrame(() => this.gameLoop());
+        requestAnimationFrame((time) => this.gameLoop(time));
     }
 
-    update() {
+    update(deltaMultiplier = 1) {
         if (this.isPaused) {
             return;
         }
 
-        if (this.player && this.player.stats.health <= 0) {
+        // 플레이어 파괴 처리
+        if (this.player && this.player.stats.health <= 0 && !this.isPlayerDestroyed) {
+            this.destroyPlayer();
+        }
+        
+        // 플레이어 재생성 처리
+        if (this.isPlayerDestroyed) {
+            this.playerRespawnTimer++;
+            if (this.playerRespawnTimer >= 180) { // 3초 (60fps 기준)
+                this.respawnPlayer();
+            }
+        }
+        
+        // 목숨이 모두 소진되면 게임 오버
+        if (this.player && this.player.stats.lives <= 0) {
             this.gameOver();
             return;
         }
 
-        this.stageTime++;
-        if (this.stageTime % 3600 === 0 && !this.boss) {
+        // 배경 업데이트
+        this.background.update(deltaMultiplier);
+
+        this.stageTime += deltaMultiplier;
+        const bossSpawnTime = this.debugMode ? 1800 : 3600; // 디버그 모드에서 절반 시간
+        if (this.stageTime >= bossSpawnTime && !this.boss) {
             this.spawnBoss();
         }
-        if (this.stageTime % 60 === 0) {
+        // 보스가 없을 때만 일반 적 생성
+        if (!this.boss && this.stageTime % (60 * deltaMultiplier) < deltaMultiplier) {
             this.spawnEnemy();
         }
 
-        this.player?.update();
-        this.updateEntities(this.enemies);
-        this.updateEntities(this.bullets);
-        this.updateEntities(this.items);
-        this.updateEntities(this.effects);
-        if (this.boss) this.boss.update();
+        this.player?.update(deltaMultiplier);
+        this.updateEntities(this.enemies, deltaMultiplier);
+        this.updateEntities(this.bullets, deltaMultiplier);
+        this.updateEntities(this.items, deltaMultiplier);
+        this.updateEntities(this.effects, deltaMultiplier);
+        this.updateEntities(this.bouncingItems, deltaMultiplier);
+        if (this.boss) {
+            this.boss.update(deltaMultiplier);
+            
+            // 보스가 처치되었을 때 보상 처리 (한 번만)
+            if (this.boss.shouldRemove) {
+                this.effects.push(new DeathEffect(
+                    this.boss.x + this.boss.width/2,
+                    this.boss.y + this.boss.height/2,
+                    this,
+                    true
+                ));
+                
+                this.score += 1000;
+                this.stage++;
+                this.boss = null;
+                this.stageTime = 0; // 스테이지 시간 리셋으로 중복 보스 생성 방지
+                
+                // 배경 스테이지 업데이트
+                this.background.setStage(this.stage);
+                
+                setTimeout(() => this.showPowerupScreen(), 1000);
+            }
+        }
         
         this.checkCollisions();
     }
@@ -149,10 +246,14 @@ window.Game = class Game {
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
+        // 배경 그리기 (가장 먼저)
+        this.background.draw();
+        
         this.player?.draw();
         this.enemies.forEach(enemy => enemy.draw());
         this.bullets.forEach(bullet => bullet.draw());
         this.items.forEach(item => item.draw());
+        this.bouncingItems.forEach(item => item.draw());
         this.effects.forEach(effect => effect.draw());
         if (this.boss) this.boss.draw();
         
@@ -162,6 +263,7 @@ window.Game = class Game {
     updateUI() {
         document.getElementById('score').textContent = this.score;
         document.getElementById('health').textContent = this.player?.stats.health ?? 0;
+        document.getElementById('lives').textContent = this.player?.stats.lives ?? 0;
         document.getElementById('stage').textContent = this.stage;
         document.getElementById('bombs').textContent = this.player?.stats.bombs ?? 0;
         document.getElementById('power').textContent = this.player?.stats.powerLevel ?? 1;
@@ -196,48 +298,57 @@ window.Game = class Game {
         this.isPaused = true;
         document.getElementById('powerupScreen').classList.add('active');
 
+        // 이전 이벤트 리스너 정리
+        this.cleanupPowerupListeners();
+
         const handlePowerupSelect = (e) => {
             const option = e.target.closest('.powerup-option');
             if (!option) return;
 
             const powerupType = option.getAttribute('data-powerup');
-            this.player.addPowerup(powerupType);
-            
-            document.getElementById('powerupScreen').classList.remove('active');
-            this.isPowerupScreenActive = false;
-            this.isPaused = false;
-            
-            document.querySelectorAll('.powerup-option').forEach(opt => {
-                opt.removeEventListener('click', handlePowerupSelect);
-            });
-            window.removeEventListener('keydown', handleKeySelect);
-
-            this.stageTime = 0;
+            this.selectPowerup(powerupType);
         };
 
         const handleKeySelect = (e) => {
             if (e.key >= '1' && e.key <= '3') {
                 const powerups = ['satellite', 'spread', 'barrier'];
                 const index = parseInt(e.key) - 1;
-                this.player.addPowerup(powerups[index]);
-                
-                document.getElementById('powerupScreen').classList.remove('active');
-                this.isPowerupScreenActive = false;
-                this.isPaused = false;
-                
-                document.querySelectorAll('.powerup-option').forEach(opt => {
-                    opt.removeEventListener('click', handlePowerupSelect);
-                });
-                window.removeEventListener('keydown', handleKeySelect);
-
-                this.stageTime = 0;
+                this.selectPowerup(powerups[index]);
             }
         };
+
+        // 이벤트 리스너 저장 (나중에 정리하기 위해)
+        this.powerupClickHandler = handlePowerupSelect;
+        this.powerupKeyHandler = handleKeySelect;
 
         document.querySelectorAll('.powerup-option').forEach(option => {
             option.addEventListener('click', handlePowerupSelect);
         });
         window.addEventListener('keydown', handleKeySelect);
+    }
+
+    selectPowerup(powerupType) {
+        this.player.addPowerup(powerupType);
+        
+        document.getElementById('powerupScreen').classList.remove('active');
+        this.isPowerupScreenActive = false;
+        this.isPaused = false;
+        this.stageTime = 0;
+        
+        this.cleanupPowerupListeners();
+    }
+
+    cleanupPowerupListeners() {
+        if (this.powerupClickHandler) {
+            document.querySelectorAll('.powerup-option').forEach(opt => {
+                opt.removeEventListener('click', this.powerupClickHandler);
+            });
+        }
+        if (this.powerupKeyHandler) {
+            window.removeEventListener('keydown', this.powerupKeyHandler);
+        }
+        this.powerupClickHandler = null;
+        this.powerupKeyHandler = null;
     }
 
     checkCollisions() {
@@ -274,20 +385,7 @@ window.Game = class Game {
             if (this.boss && this.isColliding(bullet, this.boss)) {
                 this.boss.health -= bullet.damage;
                 this.bullets.splice(i, 1);
-                if (this.boss.health <= 0) {
-                    this.effects.push(new DeathEffect(
-                        this.boss.x + this.boss.width/2,
-                        this.boss.y + this.boss.height/2,
-                        this,
-                        true
-                    ));
-                    
-                    this.score += 1000;
-                    this.stage++;
-                    this.boss = null;
-                    
-                    setTimeout(() => this.showPowerupScreen(), 1000);
-                }
+                // 보스 처치 보상은 update()에서 shouldRemove 체크로 처리
             }
         }
         
@@ -295,12 +393,13 @@ window.Game = class Game {
             const bullet = this.bullets[i];
             if (bullet.isPlayerBullet) continue;
             
-            if (this.isColliding(bullet, this.player)) {
+            // 플레이어가 존재할 때만 충돌 검사
+            if (this.player && this.isColliding(bullet, this.player)) {
                 if (this.player.barrierHits < this.player.maxBarrierHits) {
                     this.player.barrierHits++;
                     bullet.shouldRemove = true;
                 } else {
-                    this.player.stats.takeDamage(bullet.damage);
+                    this.player.stats.takeDamage(bullet.damage || 10);
                     this.bullets.splice(i, 1);
                 }
             }
@@ -308,7 +407,7 @@ window.Game = class Game {
         
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
-            if (this.isColliding(enemy, this.player)) {
+            if (this.player && this.isColliding(enemy, this.player)) {
                 this.player.stats.takeDamage(20);
                 this.enemies.splice(i, 1);
             }
@@ -316,7 +415,7 @@ window.Game = class Game {
         
         for (let i = this.items.length - 1; i >= 0; i--) {
             const item = this.items[i];
-            if (this.isColliding(item, this.player)) {
+            if (this.player && this.isColliding(item, this.player)) {
                 if (item.type === 'powerup') {
                     this.player.stats.increasePower();
                 } else if (item.type === 'bomb') {
@@ -325,11 +424,20 @@ window.Game = class Game {
                 this.items.splice(i, 1);
             }
         }
+        
+        // 튕기는 아이템과의 충돌 처리
+        for (let i = this.bouncingItems.length - 1; i >= 0; i--) {
+            const item = this.bouncingItems[i];
+            if (this.player && this.isColliding(item, this.player)) {
+                this.player.stats.increasePower();
+                this.bouncingItems.splice(i, 1);
+            }
+        }
     }
 
-    updateEntities(entities) {
+    updateEntities(entities, deltaMultiplier = 1) {
         for (let i = entities.length - 1; i >= 0; i--) {
-            entities[i].update();
+            entities[i].update(deltaMultiplier);
             if (entities[i].shouldRemove) {
                 entities.splice(i, 1);
             }
@@ -347,6 +455,52 @@ window.Game = class Game {
 
     spawnBoss() {
         this.boss = new Boss(this.canvas.width / 2, 50, this);
+    }
+    
+    destroyPlayer() {
+        if (!this.player) return;
+        
+        // 목숨 감소
+        this.player.stats.lives--;
+        
+        // 플레이어 파괴 연출
+        this.effects.push(new DeathEffect(
+            this.player.x + this.player.width/2,
+            this.player.y + this.player.height/2,
+            this,
+            true
+        ));
+        
+        // 튕기는 파워업 아이템 3개 생성
+        for (let i = 0; i < 3; i++) {
+            const bouncingItem = new BouncingItem(
+                this.player.x + (i - 1) * 15,
+                this.player.y,
+                this
+            );
+            this.bouncingItems.push(bouncingItem);
+        }
+        
+        // 플레이어 제거 및 재생성 타이머 시작
+        this.player = null;
+        this.isPlayerDestroyed = true;
+        this.playerRespawnTimer = 0;
+    }
+    
+    respawnPlayer() {
+        // 새 플레이어 생성 (파워업 초기화됨)
+        this.player = new Player(this);
+        this.player.stats.lives = Math.max(0, this.player.stats.lives);
+        
+        // 디버그 모드라면 다시 설정
+        if (this.debugMode) {
+            this.player.stats.powerLevel = 5;
+            this.player.stats.invincible = true;
+        }
+        
+        // 재생성 상태 해제
+        this.isPlayerDestroyed = false;
+        this.playerRespawnTimer = 0;
     }
 
     isColliding(obj1, obj2) {

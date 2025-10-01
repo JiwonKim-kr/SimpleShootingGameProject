@@ -15,6 +15,9 @@ window.Player = class Player {
         // 파워업 상태
         this.satellites = [];
         this.hasSpread = false;
+        this.hasMissile = false;
+        this.missileCounter = 0;
+        this.missileInterval = 10; // 미사일 발사 간격 (기본 10회)
         this.barrier = null;
         this.barrierHits = 0;
         this.maxBarrierHits = 10;
@@ -87,13 +90,40 @@ window.Player = class Player {
                     true,
                     this.stats.bulletDamage * 0.5,
                     this.stats.bulletSpeed,
-                    bulletScale * 0.8
+                    bulletScale * 0.8,
+                    true // 위성 탄환 표시
                 );
                 bullet.speedY = -this.stats.bulletSpeed;
                 this.game.bullets.push(bullet);
                 satellite.cooldown = 30;
             }
         });
+        
+        // 미사일 발사 (동적 간격)
+        if (this.hasMissile) {
+            this.missileCounter++;
+            if (this.missileCounter >= this.missileInterval) {
+                this.missileCounter = 0;
+                
+                // 양쪽에서 미사일 2발 발사
+                const leftMissile = new PlayerMissile(
+                    this.x - 10,
+                    this.y,
+                    this.game
+                );
+                leftMissile.damage = this.stats.bulletDamage * 0.2;
+                
+                const rightMissile = new PlayerMissile(
+                    this.x + this.width + 10,
+                    this.y,
+                    this.game
+                );
+                rightMissile.damage = this.stats.bulletDamage * 0.2;
+                
+                this.game.bullets.push(leftMissile);
+                this.game.bullets.push(rightMissile);
+            }
+        }
     }
 
     useBomb() {
@@ -133,11 +163,11 @@ window.Player = class Player {
         }
     }
 
-    update() {
-        const diagonalSpeed = this.stats.moveSpeed * 0.707;
+    update(deltaMultiplier = 1) {
+        const diagonalSpeed = this.stats.moveSpeed * 0.707 * deltaMultiplier;
         const isDiagonal = (this.keys['ArrowLeft'] || this.keys['ArrowRight']) && 
                           (this.keys['ArrowUp'] || this.keys['ArrowDown']);
-        const currentSpeed = isDiagonal ? diagonalSpeed : this.stats.moveSpeed;
+        const currentSpeed = isDiagonal ? diagonalSpeed : this.stats.moveSpeed * deltaMultiplier;
 
         if (this.keys['ArrowLeft']) {
             this.x = Math.max(0, this.x - currentSpeed);
@@ -242,8 +272,15 @@ window.Player = class Player {
                     cooldown: 0
                 });
                 break;
-            case 'spread':
-                this.hasSpread = true;
+            case 'missile':
+                if (!this.hasMissile) {
+                    this.hasMissile = true;
+                    this.missileCounter = 0;
+                    this.missileInterval = 10;
+                } else {
+                    // 중복 획득 시 발사 간격 감소 (최소 5까지)
+                    this.missileInterval = Math.max(5, this.missileInterval - 1);
+                }
                 break;
             case 'barrier':
                 this.maxBarrierHits += 10;
