@@ -12,6 +12,13 @@ window.Missile = class Missile {
         this.targetY = targetY;
         this.angle = 0;
         this.trail = [];
+        
+        // 관성 시스템
+        this.velocityX = 0;
+        this.velocityY = this.speed; // 초기에는 아래로 이동
+        this.maxSpeed = 4;
+        this.acceleration = 0.15; // 가속도 (관성 효과)
+        this.turnRate = 0.05; // 회전 속도 제한 (더 느리게)
     }
 
     update() {
@@ -22,23 +29,29 @@ window.Missile = class Missile {
             const distance = Math.sqrt(dx * dx + dy * dy);
             
             if (distance > 0) {
-                // 부드러운 추적을 위한 보간
-                const targetAngle = Math.atan2(dy, dx);
-                let angleDiff = targetAngle - this.angle;
+                // 목표 방향 계산
+                const targetVelX = (dx / distance) * this.maxSpeed;
+                const targetVelY = (dy / distance) * this.maxSpeed;
                 
-                // 각도 차이 정규화
-                while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
-                while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+                // 관성을 적용한 속도 변화 (부드러운 가속)
+                this.velocityX += (targetVelX - this.velocityX) * this.acceleration;
+                this.velocityY += (targetVelY - this.velocityY) * this.acceleration;
                 
-                // 회전 속도 제한
-                const maxTurnRate = 0.1;
-                this.angle += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), maxTurnRate);
+                // 최대 속도 제한
+                const currentSpeed = Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);
+                if (currentSpeed > this.maxSpeed) {
+                    this.velocityX = (this.velocityX / currentSpeed) * this.maxSpeed;
+                    this.velocityY = (this.velocityY / currentSpeed) * this.maxSpeed;
+                }
+                
+                // 각도 계산 (시각적 표현용)
+                this.angle = Math.atan2(this.velocityY, this.velocityX);
             }
         }
         
-        // 이동
-        this.x += Math.cos(this.angle) * this.speed;
-        this.y += Math.sin(this.angle) * this.speed;
+        // 관성이 적용된 이동
+        this.x += this.velocityX;
+        this.y += this.velocityY;
         
         // 궤적 추가
         this.trail.push({x: this.x, y: this.y});
