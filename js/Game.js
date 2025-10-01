@@ -18,6 +18,11 @@ window.Game = class Game {
         this.isPowerupScreenActive = false;
         this.isPaused = false;
         
+        // 플레이어 재생성 시스템
+        this.playerRespawnTimer = 0;
+        this.isPlayerDestroyed = false;
+        this.bouncingItems = [];
+        
         // 디버그 모드
         this.debugMode = false;
         this.debugClickCount = 0;
@@ -173,7 +178,21 @@ window.Game = class Game {
             return;
         }
 
-        if (this.player && this.player.stats.health <= 0) {
+        // 플레이어 파괴 처리
+        if (this.player && this.player.stats.health <= 0 && !this.isPlayerDestroyed) {
+            this.destroyPlayer();
+        }
+        
+        // 플레이어 재생성 처리
+        if (this.isPlayerDestroyed) {
+            this.playerRespawnTimer++;
+            if (this.playerRespawnTimer >= 180) { // 3초 (60fps 기준)
+                this.respawnPlayer();
+            }
+        }
+        
+        // 목숨이 모두 소진되면 게임 오버
+        if (this.player && this.player.stats.lives <= 0) {
             this.gameOver();
             return;
         }
@@ -196,6 +215,7 @@ window.Game = class Game {
         this.updateEntities(this.bullets, deltaMultiplier);
         this.updateEntities(this.items, deltaMultiplier);
         this.updateEntities(this.effects, deltaMultiplier);
+        this.updateEntities(this.bouncingItems, deltaMultiplier);
         if (this.boss) {
             this.boss.update(deltaMultiplier);
             
@@ -233,6 +253,7 @@ window.Game = class Game {
         this.enemies.forEach(enemy => enemy.draw());
         this.bullets.forEach(bullet => bullet.draw());
         this.items.forEach(item => item.draw());
+        this.bouncingItems.forEach(item => item.draw());
         this.effects.forEach(effect => effect.draw());
         if (this.boss) this.boss.draw();
         
@@ -242,6 +263,7 @@ window.Game = class Game {
     updateUI() {
         document.getElementById('score').textContent = this.score;
         document.getElementById('health').textContent = this.player?.stats.health ?? 0;
+        document.getElementById('lives').textContent = this.player?.stats.lives ?? 0;
         document.getElementById('stage').textContent = this.stage;
         document.getElementById('bombs').textContent = this.player?.stats.bombs ?? 0;
         document.getElementById('power').textContent = this.player?.stats.powerLevel ?? 1;
@@ -402,6 +424,15 @@ window.Game = class Game {
                 this.items.splice(i, 1);
             }
         }
+        
+        // 튕기는 아이템과의 충돌 처리
+        for (let i = this.bouncingItems.length - 1; i >= 0; i--) {
+            const item = this.bouncingItems[i];
+            if (this.player && this.isColliding(item, this.player)) {
+                this.player.stats.increasePower();
+                this.bouncingItems.splice(i, 1);
+            }
+        }
     }
 
     updateEntities(entities, deltaMultiplier = 1) {
@@ -424,6 +455,52 @@ window.Game = class Game {
 
     spawnBoss() {
         this.boss = new Boss(this.canvas.width / 2, 50, this);
+    }
+    
+    destroyPlayer() {
+        if (!this.player) return;
+        
+        // 목숨 감소
+        this.player.stats.lives--;
+        
+        // 플레이어 파괴 연출
+        this.effects.push(new DeathEffect(
+            this.player.x + this.player.width/2,
+            this.player.y + this.player.height/2,
+            this,
+            true
+        ));
+        
+        // 튕기는 파워업 아이템 3개 생성
+        for (let i = 0; i < 3; i++) {
+            const bouncingItem = new BouncingItem(
+                this.player.x + (i - 1) * 15,
+                this.player.y,
+                this
+            );
+            this.bouncingItems.push(bouncingItem);
+        }
+        
+        // 플레이어 제거 및 재생성 타이머 시작
+        this.player = null;
+        this.isPlayerDestroyed = true;
+        this.playerRespawnTimer = 0;
+    }
+    
+    respawnPlayer() {
+        // 새 플레이어 생성 (파워업 초기화됨)
+        this.player = new Player(this);
+        this.player.stats.lives = Math.max(0, this.player.stats.lives);
+        
+        // 디버그 모드라면 다시 설정
+        if (this.debugMode) {
+            this.player.stats.powerLevel = 5;
+            this.player.stats.invincible = true;
+        }
+        
+        // 재생성 상태 해제
+        this.isPlayerDestroyed = false;
+        this.playerRespawnTimer = 0;
     }
 
     isColliding(obj1, obj2) {

@@ -13,6 +13,10 @@ window.PlayerStats = class PlayerStats {
         this.isInvincible = false;
         this.invincibleTime = 3000;
         this.invincible = false; // 디버그 모드용 무적 상태
+        
+        // 목숨 시스템
+        this.lives = 3;
+        this.maxLives = 3;
     }
 
     increasePower() {

@@ -10,6 +10,7 @@ const validateDependencies = () => {
         'Missile',
         'DeathEffect',
         'Item',
+        'BouncingItem',
         'Game'
     ];
 
