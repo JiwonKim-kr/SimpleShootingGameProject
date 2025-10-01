@@ -1,31 +1,43 @@
+# OS generated files
 .DS_Store
-node_modules/
-*.log
-.env
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
 .vscode/
-
-# Eclipse IDE
-.metadata
-bin/
-tmp/
-*.tmp
-*.bak
-*.swp
-*~.nib
-local.properties
-.settings/
-.loadpath
-.recommenders
-.project
-.classpath
-.factorypath
-.buildpath
-.target
-
-# IntelliJ IDEA
 .idea/
-*.iws
-*.iml
-*.ipr
-out/
-.idea_modules/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+
+# Coverage directory used by tools like istanbul
+coverage
+
+# Dependency directories
+node_modules/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# AWS deployment files
+.aws-sam/
+samconfig.toml
+
+# Temporary files
+*.tmp
+*.temp
