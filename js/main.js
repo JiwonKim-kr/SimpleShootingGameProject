@@ -2,6 +2,7 @@
 const validateDependencies = () => {
     const required = [
         'PlayerStats',
+        'Background',
         'Player',
         'Enemy',
         'Boss',

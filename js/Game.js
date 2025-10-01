@@ -18,6 +18,9 @@ window.Game = class Game {
         this.isPowerupScreenActive = false;
         this.isPaused = false;
         
+        // 배경 시스템
+        this.background = new Background(this.canvas, this.stage);
+        
         // 델타 타임 시스템
         this.lastTime = 0;
         this.deltaTime = 0;
@@ -118,6 +121,9 @@ window.Game = class Game {
         this.boss = null;
         this.stageTime = 0;
         
+        // 배경 초기화
+        this.background.setStage(this.stage);
+        
         this.gameLoop();
     }
 
@@ -146,6 +152,9 @@ window.Game = class Game {
             return;
         }
 
+        // 배경 업데이트
+        this.background.update(deltaMultiplier);
+
         this.stageTime += deltaMultiplier;
         if (this.stageTime >= 3600 && !this.boss) {
             this.spawnBoss();
@@ -166,6 +175,9 @@ window.Game = class Game {
 
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 배경 그리기 (가장 먼저)
+        this.background.draw();
         
         this.player?.draw();
         this.enemies.forEach(enemy => enemy.draw());
@@ -312,6 +324,9 @@ window.Game = class Game {
                     this.score += 1000;
                     this.stage++;
                     this.boss = null;
+                    
+                    // 배경 스테이지 업데이트
+                    this.background.setStage(this.stage);
                     
                     setTimeout(() => this.showPowerupScreen(), 1000);
                 }
