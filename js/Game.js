@@ -159,7 +159,8 @@ window.Game = class Game {
         if (this.stageTime >= 3600 && !this.boss) {
             this.spawnBoss();
         }
-        if (this.stageTime % (60 * deltaMultiplier) < deltaMultiplier) {
+        // 보스가 없을 때만 일반 적 생성
+        if (!this.boss && this.stageTime % (60 * deltaMultiplier) < deltaMultiplier) {
             this.spawnEnemy();
         }
 
