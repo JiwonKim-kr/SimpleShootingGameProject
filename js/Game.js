@@ -169,7 +169,28 @@ window.Game = class Game {
         this.updateEntities(this.bullets, deltaMultiplier);
         this.updateEntities(this.items, deltaMultiplier);
         this.updateEntities(this.effects, deltaMultiplier);
-        if (this.boss) this.boss.update(deltaMultiplier);
+        if (this.boss) {
+            this.boss.update(deltaMultiplier);
+            
+            // 보스가 처치되었을 때 보상 처리 (한 번만)
+            if (this.boss.shouldRemove) {
+                this.effects.push(new DeathEffect(
+                    this.boss.x + this.boss.width/2,
+                    this.boss.y + this.boss.height/2,
+                    this,
+                    true
+                ));
+                
+                this.score += 1000;
+                this.stage++;
+                this.boss = null;
+                
+                // 배경 스테이지 업데이트
+                this.background.setStage(this.stage);
+                
+                setTimeout(() => this.showPowerupScreen(), 1000);
+            }
+        }
         
         this.checkCollisions();
     }
@@ -314,23 +335,7 @@ window.Game = class Game {
             if (this.boss && this.isColliding(bullet, this.boss)) {
                 this.boss.health -= bullet.damage;
                 this.bullets.splice(i, 1);
-                if (this.boss.health <= 0) {
-                    this.effects.push(new DeathEffect(
-                        this.boss.x + this.boss.width/2,
-                        this.boss.y + this.boss.height/2,
-                        this,
-                        true
-                    ));
-                    
-                    this.score += 1000;
-                    this.stage++;
-                    this.boss = null;
-                    
-                    // 배경 스테이지 업데이트
-                    this.background.setStage(this.stage);
-                    
-                    setTimeout(() => this.showPowerupScreen(), 1000);
-                }
+                // 보스 처치 보상은 update()에서 shouldRemove 체크로 처리
             }
         }
         

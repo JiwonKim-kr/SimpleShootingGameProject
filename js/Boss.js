@@ -37,6 +37,7 @@ window.Boss = class Boss {
             this.currentPattern = Math.floor(Math.random() * this.patterns.length);
         }
 
+        // 체력이 0 이하일 때만 제거 플래그 설정 (보상은 Game.js에서 처리)
         if (this.health <= 0) {
             this.shouldRemove = true;
         }
