@@ -15,6 +15,8 @@ window.Player = class Player {
         // 파워업 상태
         this.satellites = [];
         this.hasSpread = false;
+        this.hasMissile = false;
+        this.missileCounter = 0;
         this.barrier = null;
         this.barrierHits = 0;
         this.maxBarrierHits = 10;
@@ -94,6 +96,32 @@ window.Player = class Player {
                 satellite.cooldown = 30;
             }
         });
+        
+        // 미사일 발사 (10회마다)
+        if (this.hasMissile) {
+            this.missileCounter++;
+            if (this.missileCounter >= 10) {
+                this.missileCounter = 0;
+                
+                // 양쪽에서 미사일 2발 발사
+                const leftMissile = new PlayerMissile(
+                    this.x - 10,
+                    this.y,
+                    this.game
+                );
+                leftMissile.damage = this.stats.bulletDamage * 0.2;
+                
+                const rightMissile = new PlayerMissile(
+                    this.x + this.width + 10,
+                    this.y,
+                    this.game
+                );
+                rightMissile.damage = this.stats.bulletDamage * 0.2;
+                
+                this.game.bullets.push(leftMissile);
+                this.game.bullets.push(rightMissile);
+            }
+        }
     }
 
     useBomb() {
@@ -242,8 +270,9 @@ window.Player = class Player {
                     cooldown: 0
                 });
                 break;
-            case 'spread':
-                this.hasSpread = true;
+            case 'missile':
+                this.hasMissile = true;
+                this.missileCounter = 0;
                 break;
             case 'barrier':
                 this.maxBarrierHits += 10;
