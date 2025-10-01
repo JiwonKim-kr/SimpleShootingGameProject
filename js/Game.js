@@ -393,8 +393,8 @@ window.Game = class Game {
             const bullet = this.bullets[i];
             if (bullet.isPlayerBullet) continue;
             
-            // 미사일과 일반 탄환 모두 처리
-            if (this.isColliding(bullet, this.player)) {
+            // 플레이어가 존재할 때만 충돌 검사
+            if (this.player && this.isColliding(bullet, this.player)) {
                 if (this.player.barrierHits < this.player.maxBarrierHits) {
                     this.player.barrierHits++;
                     bullet.shouldRemove = true;
@@ -407,7 +407,7 @@ window.Game = class Game {
         
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
-            if (this.isColliding(enemy, this.player)) {
+            if (this.player && this.isColliding(enemy, this.player)) {
                 this.player.stats.takeDamage(20);
                 this.enemies.splice(i, 1);
             }
@@ -415,7 +415,7 @@ window.Game = class Game {
         
         for (let i = this.items.length - 1; i >= 0; i--) {
             const item = this.items[i];
-            if (this.isColliding(item, this.player)) {
+            if (this.player && this.isColliding(item, this.player)) {
                 if (item.type === 'powerup') {
                     this.player.stats.increasePower();
                 } else if (item.type === 'bomb') {
